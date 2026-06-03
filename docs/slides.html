@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>history-pov | システムアーキテクチャ</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #1b1f2a;
+    font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+    overflow: hidden;
+  }
+  /* 固定キャンバス（1280x720）を画面に合わせてスケール */
+  #stage-wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #stage { width: 1280px; height: 720px; position: relative; transform-origin: center center; }
+
+  .slide { display: none; width: 1280px; height: 720px; position: absolute; top: 0; left: 0; background: #fbfcfe; }
+  .slide.active { display: block; }
+
+  /* ---- 共通ヘッダ ---- */
+  .kicker { position: absolute; top: 52px; left: 64px; font-size: 12px; letter-spacing: 3px; color: #c8612e; font-weight: 700; text-transform: uppercase; }
+  .title { position: absolute; top: 72px; left: 64px; font-size: 30px; font-weight: 800; color: #16203a; }
+  .pageno { position: absolute; top: 56px; right: 64px; font-size: 12px; color: #aab2c2; letter-spacing: 1px; }
+  .footer { position: absolute; bottom: 28px; left: 64px; font-size: 11px; color: #b4bccb; }
+  .footer-r { position: absolute; bottom: 28px; right: 64px; font-size: 11px; color: #b4bccb; }
+  .rule { position: absolute; top: 122px; left: 64px; width: 1152px; height: 1px; background: #e6eaf1; }
+
+  /* ============ SLIDE 1 : タイトル ============ */
+  .s1 { background: linear-gradient(120deg, #16203a 0%, #1f2d52 55%, #2a3f6e 100%); }
+  .s1 .tag { position: absolute; top: 250px; left: 80px; font-size: 13px; letter-spacing: 6px; color: #f0a878; text-transform: uppercase; font-weight: 700; }
+  .s1 h1 { position: absolute; top: 282px; left: 80px; font-size: 52px; font-weight: 800; color: #fff; line-height: 1.2; }
+  .s1 h1 b { color: #f0a878; }
+  .s1 .sub { position: absolute; top: 430px; left: 82px; font-size: 18px; color: #aebbd6; line-height: 1.7; }
+  .s1 .meta { position: absolute; bottom: 60px; left: 82px; font-size: 12px; color: #6d7ea8; letter-spacing: 1px; }
+
+  /* ============ 共通：ボックス ============ */
+  .node { position: absolute; border-radius: 8px; background: #fff; border: 1px solid #d8deea; box-shadow: 0 2px 6px rgba(22,32,58,0.06); padding: 12px 14px; }
+  .node .h { font-size: 13px; font-weight: 700; color: #16203a; display: flex; align-items: center; gap: 6px; }
+  .node .d { font-size: 11px; color: #6b7589; margin-top: 4px; line-height: 1.45; }
+  .node .tag2 { font-size: 10px; color: #8a93a6; margin-top: 5px; letter-spacing: 0.3px; }
+  .accent-l { border-left: 4px solid #2a3f6e; }
+  .accent-o { border-left: 4px solid #c8612e; }
+  .accent-g { border-left: 4px solid #2f8f5b; }
+
+  .grouplabel { position: absolute; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #99a3b6; text-transform: uppercase; }
+  .groupbox { position: absolute; border: 1px dashed #ccd4e1; border-radius: 12px; background: rgba(240,243,248,0.5); }
+
+  /* arrows via small triangles */
+  .arr { position: absolute; color: #aab2c2; font-size: 16px; }
+
+  /* ============ SLIDE 2 : 全体構成 (swimlane) ============ */
+  .pill { display:inline-block; font-size: 10px; font-weight:700; padding: 2px 8px; border-radius: 10px; }
+  .p-claude { background:#fbe9df; color:#c8612e; }
+  .p-stab   { background:#e3f3ea; color:#2f8f5b; }
+  .p-kling  { background:#e5ecfb; color:#3a5ba8; }
+  .p-local  { background:#f3eddc; color:#9c7d2e; }
+  .p-yt     { background:#fbe3e3; color:#c0392b; }
+
+  .stepcard { position:absolute; width: 150px; height: 92px; background:#fff; border:1px solid #d8deea; border-radius:8px; padding:10px 12px; box-shadow:0 2px 5px rgba(22,32,58,0.05); }
+  .stepcard .sn { font-size:10px; font-weight:800; color:#c2c9d6; }
+  .stepcard .st { font-size:12.5px; font-weight:700; color:#16203a; margin-top:2px; line-height:1.3; }
+  .stepcard .sp { position:absolute; bottom:10px; left:12px; }
+
+  /* ============ SLIDE 3 : Discord ops ============ */
+  .opsnode { position:absolute; width:200px; background:#fff; border:1px solid #d8deea; border-radius:10px; padding:16px; text-align:center; box-shadow:0 2px 6px rgba(22,32,58,0.06); }
+  .opsnode.cl { border:1px solid #c8612e; background:#fffaf6; }
+  .opsnode .oh { font-size:14px; font-weight:700; color:#16203a; }
+  .opsnode .od { font-size:11px; color:#6b7589; margin-top:6px; line-height:1.5; }
+  .cmdrow { position:absolute; }
+  .cmdcard { background:#f5f7fb; border:1px solid #dfe5ef; border-radius:7px; padding:9px 12px; font-size:11.5px; color:#3a4456; margin-bottom:8px; }
+  .cmdcard b { color:#16203a; }
+
+  /* nav */
+  .nav { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 8px 18px; border-radius: 30px; backdrop-filter: blur(8px); z-index: 100; }
+  .nav button { background: none; border: none; color: #fff; cursor: pointer; font-size: 16px; padding: 2px 8px; border-radius: 6px; }
+  .nav button:hover { background: rgba(255,255,255,0.15); }
+  .dots { display: flex; gap: 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.35); cursor: pointer; }
+  .dot.active { background: #f0a878; }
+</style>
+</head>
+<body>
+<div id="stage-wrap"><div id="stage">
+
+  <!-- ===== SLIDE 1 ===== -->
+  <div class="slide s1 active">
+    <div class="tag">System Architecture Overview</div>
+    <h1><b>history-pov</b><br>AI動画 自動投稿システム</h1>
+    <div class="sub">Claudeを中核に、企画から投稿までを完全自動化した<br>ショート動画パイプラインのアーキテクチャ解説</div>
+    <div class="meta">Prepared for internal review　|　2026.06</div>
+    <div class="pageno" style="color:#6d7ea8;">01 / 03</div>
+  </div>
+
+  <!-- ===== SLIDE 2 : 全体構成 ===== -->
+  <div class="slide">
+    <div class="kicker">Architecture</div>
+    <div class="title">全体構成 ― 1日の自動実行フロー</div>
+    <div class="rule"></div>
+    <div class="pageno">02 / 03</div>
+
+    <!-- レーン1: オーケストレーション -->
+    <div class="grouplabel" style="top:150px; left:64px;">① ORCHESTRATION（制御層）</div>
+    <div class="node accent-l" style="top:176px; left:64px; width:240px;">
+      <div class="h">🖥️ Windows タスクスケジューラー</div>
+      <div class="d">PC起動時＋毎朝05:50に常駐プロセスを自動起動</div>
+    </div>
+    <div class="arr" style="top:198px; left:312px;">▶</div>
+    <div class="node accent-l" style="top:176px; left:336px; width:300px;">
+      <div class="h">⚙️ scheduler.py（司令塔）</div>
+      <div class="d">時刻を監視し、3つのジョブを定刻実行</div>
+      <div class="tag2">06:00 生成　/　09:00 残高チェック　/　19:00 投稿</div>
+    </div>
+
+    <!-- レーン2: 生成パイプライン -->
+    <div class="grouplabel" style="top:300px; left:64px;">② GENERATION PIPELINE（main.py ／ 毎日 06:00）</div>
+    <div class="groupbox" style="top:324px; left:64px; width:1152px; height:160px;"></div>
+
+    <div class="stepcard" style="top:352px; left:84px;">
+      <div class="sn">STEP 1</div><div class="st">ネタ生成</div>
+      <div class="sp"><span class="pill p-claude">Claude</span></div>
+    </div>
+    <div class="arr" style="top:388px; left:240px;">▶</div>
+    <div class="stepcard" style="top:352px; left:262px;">
+      <div class="sn">STEP 2</div><div class="st">台本・字幕・<br>画像プロンプト</div>
+      <div class="sp"><span class="pill p-claude">Claude</span></div>
+    </div>
+    <div class="arr" style="top:388px; left:418px;">▶</div>
+    <div class="stepcard" style="top:352px; left:440px;">
+      <div class="sn">STEP 3</div><div class="st">画像生成</div>
+      <div class="sp"><span class="pill p-stab">Stability AI</span></div>
+    </div>
+    <div class="arr" style="top:388px; left:596px;">▶</div>
+    <div class="stepcard" style="top:352px; left:618px;">
+      <div class="sn">STEP 3.5</div><div class="st">画像→動画<br>クリップ化</div>
+      <div class="sp"><span class="pill p-kling">Kling AI</span></div>
+    </div>
+    <div class="arr" style="top:388px; left:774px;">▶</div>
+    <div class="stepcard" style="top:352px; left:796px;">
+      <div class="sn">STEP 4</div><div class="st">ナレーション<br>音声合成</div>
+      <div class="sp"><span class="pill p-local">VOICEVOX</span></div>
+    </div>
+    <div class="arr" style="top:388px; left:952px;">▶</div>
+    <div class="stepcard" style="top:352px; left:974px;">
+      <div class="sn">STEP 5-6</div><div class="st">動画編集・<br>字幕合成</div>
+      <div class="sp"><span class="pill p-local">MoviePy</span></div>
+    </div>
+
+    <!-- レーン3: 配信・通知 -->
+    <div class="grouplabel" style="top:506px; left:64px;">③ DISTRIBUTION & MONITORING（配信・通知層）</div>
+    <div class="node" style="top:532px; left:64px; width:200px;">
+      <div class="h">📁 output/</div>
+      <div class="d">完成動画(mp4)をローカル保存</div>
+    </div>
+    <div class="arr" style="top:556px; left:272px;">▶</div>
+    <div class="node accent-g" style="top:532px; left:296px; width:240px;">
+      <div class="h">📺 YouTube 自動投稿 <span class="pill p-yt" style="margin-left:4px;">19:00</span></div>
+      <div class="d">公開設定で投稿（YouTube Data API）</div>
+    </div>
+    <div class="arr" style="top:556px; left:544px;">▶</div>
+    <div class="node accent-o" style="top:532px; left:568px; width:300px;">
+      <div class="h">💬 Discord 通知（Webhook）</div>
+      <div class="d">生成完了／投稿リンク／エラー／残高警告を一方向通知</div>
+    </div>
+
+    <div class="footer">凡例：　<span class="pill p-claude">Claude</span> 生成AI　<span class="pill p-stab">外部API</span>　<span class="pill p-local">ローカル処理</span></div>
+    <div class="footer-r">history-pov / system architecture</div>
+  </div>
+
+  <!-- ===== SLIDE 3 : Discord Ops ===== -->
+  <div class="slide">
+    <div class="kicker">Remote Operations</div>
+    <div class="title">Discord Bot ― 自然言語による遠隔操作</div>
+    <div class="rule"></div>
+    <div class="pageno">03 / 03</div>
+
+    <!-- フロー -->
+    <div class="opsnode" style="top:200px; left:64px;">
+      <div class="oh">📱 ユーザー</div>
+      <div class="od">スマホのDiscordから<br>日本語で指示を送信</div>
+    </div>
+    <div class="arr" style="top:248px; left:276px; font-size:22px;">▶</div>
+    <div class="opsnode" style="top:200px; left:312px;">
+      <div class="oh">🤖 discord_bot.py</div>
+      <div class="od">常駐プロセスが<br>メッセージを受信</div>
+    </div>
+    <div class="arr" style="top:248px; left:524px; font-size:22px;">▶</div>
+    <div class="opsnode cl" style="top:200px; left:560px;">
+      <div class="oh">🧠 Claude Haiku</div>
+      <div class="od">発言の意図を解析し<br>実行アクションをJSON判定</div>
+    </div>
+    <div class="arr" style="top:248px; left:772px; font-size:22px;">▶</div>
+    <div class="opsnode" style="top:200px; left:808px;">
+      <div class="oh">⚙️ 処理実行</div>
+      <div class="od">該当処理を起動し<br>結果をDiscordへ返信</div>
+    </div>
+
+    <!-- コマンド例 -->
+    <div class="grouplabel" style="top:380px; left:64px;">解析されるアクション例</div>
+    <div style="position:absolute; top:410px; left:64px; width:1010px; display:flex; gap:14px;">
+      <div style="flex:1; background:#f5f7fb; border:1px solid #dfe5ef; border-radius:8px; padding:14px;">
+        <div style="font-size:13px;font-weight:700;color:#16203a;">「動画作って」</div>
+        <div style="font-size:11px;color:#6b7589;margin-top:5px;">→ 生成パイプラインを起動</div>
+      </div>
+      <div style="flex:1; background:#f5f7fb; border:1px solid #dfe5ef; border-radius:8px; padding:14px;">
+        <div style="font-size:13px;font-weight:700;color:#16203a;">「アップして」</div>
+        <div style="font-size:11px;color:#6b7589;margin-top:5px;">→ YouTube投稿を実行</div>
+      </div>
+      <div style="flex:1; background:#f5f7fb; border:1px solid #dfe5ef; border-radius:8px; padding:14px;">
+        <div style="font-size:13px;font-weight:700;color:#16203a;">「状態は？」</div>
+        <div style="font-size:11px;color:#6b7589;margin-top:5px;">→ 当日の進捗を確認</div>
+      </div>
+      <div style="flex:1; background:#f5f7fb; border:1px solid #dfe5ef; border-radius:8px; padding:14px;">
+        <div style="font-size:13px;font-weight:700;color:#16203a;">「残高は？」</div>
+        <div style="font-size:11px;color:#6b7589;margin-top:5px;">→ APIクレジットを確認</div>
+      </div>
+    </div>
+
+    <div style="position:absolute; top:540px; left:64px; width:1010px; background:#fffaf6; border:1px solid #f0c9ad; border-radius:8px; padding:16px 18px;">
+      <div style="font-size:12px;font-weight:700;color:#c8612e;">POINT</div>
+      <div style="font-size:13px;color:#3a4456;margin-top:4px;line-height:1.6;">固定コマンドではなく、Claudeが自由な日本語の意図を解釈するため、表現の揺れ（「作って」「生成して」「お願い」）にも対応できる。スマホ1台でシステム全体を操作可能。</div>
+    </div>
+
+    <div class="footer">history-pov / remote operations</div>
+    <div class="footer-r">Built with Claude API</div>
+  </div>
+
+</div></div>
+
+<div class="nav">
+  <button onclick="prevSlide()">←</button>
+  <div class="dots" id="dots"></div>
+  <button onclick="nextSlide()">→</button>
+</div>
+
+<script>
+  // スケール調整
+  function fit() {
+    const s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    document.getElementById('stage').style.transform = `scale(${s})`;
+  }
+  window.addEventListener('resize', fit); fit();
+
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  });
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    dotsEl.children[current].classList.remove('active');
+    current = (n + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    dotsEl.children[current].classList.add('active');
+  }
+  function nextSlide() { goTo(current + 1); }
+  function prevSlide() { goTo(current - 1); }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextSlide();
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevSlide();
+  });
+</script>
+</body>
+</html>
