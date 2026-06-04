@@ -1,0 +1,36 @@
+{
+  "title": "本能寺の変・天下統一の夢",
+  "topic": "本能寺の変",
+  "scenes": [
+    {
+      "narration": "天正十年、夏。天下統一は、もう目前に迫っていた。",
+      "caption": "天正十年、夏。天下統一は目前だった。",
+      "image_query": "Azuchi castle Japan painting"
+    },
+    {
+      "narration": "尾張の小さな大名から、織田信長はここまで上り詰めた。",
+      "caption": "織田信長、ここまで上り詰めた。",
+      "image_query": "Oda Nobunaga portrait"
+    },
+    {
+      "narration": "しかし六月二日の未明、京都の本能寺を炎が包む。",
+      "caption": "六月二日未明、本能寺が炎に包まれる。",
+      "image_query": "Honno-ji temple Kyoto fire painting"
+    },
+    {
+      "narration": "謀反を起こしたのは、最も信頼していた家臣、明智光秀だった。",
+      "caption": "謀反の主は、家臣・明智光秀。",
+      "image_query": "Akechi Mitsuhide portrait"
+    },
+    {
+      "narration": "「是非に及ばず」。信長はそう言い残し、炎の中へ消えたという。",
+      "caption": "「是非に及ばず」——信長、炎の中へ。",
+      "image_query": "samurai battle fire ukiyo-e"
+    },
+    {
+      "narration": "天下統一の夢は、わずか十一日後、光秀の死とともに潰える。",
+      "caption": "夢は十一日後、光秀の死とともに潰えた。",
+      "image_query": "Battle of Yamazaki ukiyo-e"
+    }
+  ]
+}

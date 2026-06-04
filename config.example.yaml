@@ -1,0 +1,36 @@
+# Copy to config.yaml and edit. All keys are optional; omitted keys use defaults.
+
+# --- Frame geometry (vertical short) ---
+width: 1080
+height: 1920
+fps: 30
+
+# --- Narration (Edge TTS, free, no key) ---
+# List voices:  edge-tts --list-voices | grep ja-JP
+voice: "ja-JP-NanamiNeural"   # or ja-JP-KeitaNeural (male)
+rate: "+0%"                    # e.g. "+10%" to speak faster
+volume: "+0%"
+
+# --- Captions ---
+# A Japanese-capable .ttf/.ttc font path. Defaults try common system fonts.
+# font: "/path/to/NotoSansCJKjp-Bold.otf"
+font_size: 64
+caption_max_chars: 14
+caption_color: "white"
+caption_stroke: "black"
+caption_stroke_width: 4
+caption_y_ratio: 0.74
+
+# --- Visuals ---
+ken_burns_zoom: 0.08
+image_provider: "wikimedia"   # or "none" to force the generated-gradient fallback
+
+# --- Script generation (only used by --topic) ---
+llm_provider: "none"          # "anthropic" | "openai" | "none"
+llm_model: ""                 # leave blank for the provider default
+# Set the matching key in your environment or .env:
+#   ANTHROPIC_API_KEY=...   or   OPENAI_API_KEY=...
+
+# --- Paths ---
+output_dir: "output"
+work_dir: "output/_work"

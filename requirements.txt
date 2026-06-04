@@ -1,0 +1,19 @@
+# Core video composition (bundles its own ffmpeg via imageio-ffmpeg)
+moviepy>=2.1
+imageio-ffmpeg>=0.5
+pillow>=10
+numpy>=1.26
+
+# Free, no-key narration (Microsoft Edge TTS)
+edge-tts>=6.1
+
+# HTTP for Wikimedia Commons image fetching
+requests>=2.31
+
+# Optional: script generation via an LLM (only needed if you use --provider)
+# anthropic>=0.40
+# openai>=1.40
+
+# Optional: config & env loading
+pyyaml>=6
+python-dotenv>=1
